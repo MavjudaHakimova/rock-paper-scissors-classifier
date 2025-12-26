@@ -1,6 +1,6 @@
 train_data_dir: data/train
 test_data_dir: data/test
-val_data_dir: data/val
-train_batch_size: 16
+val_data_dir: data/validation
+train_batch_size: 32
 test_batch_size: 8
 predict_batch_size: 8

@@ -1,18 +1,18 @@
-import sys
 import os
+import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import torch
-import lightning as L
-from lightning.pytorch.loggers import TensorBoardLogger
-import hydra
 import os
+
+import hydra
+import lightning as L
+import torch
+from lightning.pytorch.loggers import TensorBoardLogger
 from omegaconf import DictConfig, OmegaConf
 
 from rps.data import RPSDataModule
 from rps.module import RPSModule
-from lightning.pytorch.loggers import MLFlowLogger
 
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
@@ -22,6 +22,7 @@ def train(cfg: DictConfig):
     datamodule = RPSDataModule(
         cfg.data.train_data_dir,
         cfg.data.test_data_dir,
+        cfg.data.val_data_dir,
         cfg.data.train_batch_size,
         cfg.data.test_batch_size,
     )
@@ -29,7 +30,6 @@ def train(cfg: DictConfig):
     model = RPSModule(num_classes=cfg.model.num_classes)
 
     logger = TensorBoardLogger("tb_logs", name=cfg.logging.model_name)
-    mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
     trainer = L.Trainer(
         max_epochs=cfg.num_epochs,
         logger=logger,

@@ -1,6 +1,5 @@
-import torch
 import timm
-import torch.nn as nn
+import torch
 
 
 class FeatureExtractor(torch.nn.Module):

@@ -1,50 +1,88 @@
-import torch
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from pathlib import Path
+
+import hydra
 import lightning as L
+import torch
+from omegaconf import DictConfig
 from PIL import Image
-import matplotlib.pyplot as plt
-import numpy as np
-import joblib
-from model import FeatureExtractor
-from data import RPSDataModule
+from torchvision import transforms
+
+from rps.data import RPSDataModule
+from rps.module import RPSModule
+
+# Классы RPS для интерпретации предсказаний
+CLASS_NAMES = ["rock", "paper", "scissors"]
 
 
-def infer(model_file: str, image_path: str, batch_size: int = 1):
-    # Загружаем обученный CatBoost
-    classifier = joblib.load("rps_classifier.pkl")
-    feature_extractor = FeatureExtractor()
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
+def infer(cfg: DictConfig):
+    print("Загрузка модели и данных...")
 
-    # Загружаем и предобрабатываем изображение
-    transform = torch.nn.Sequential(
-        torch.nn.Upsample(size=(224, 224)), torch.nn.Lambda(lambda x: x * 2 - 1.0)
+    # === BATCH ТЕСТИРОВАНИЕ ===
+    datamodule = RPSDataModule(
+        cfg.data.train_data_dir,
+        cfg.data.test_data_dir,
+        cfg.data.val_data_dir,
+        cfg.data.train_batch_size,
+        cfg.data.test_batch_size,
     )
 
-    img = Image.open(image_path).convert("RGB")
-    img_tensor = transform(
-        torch.from_numpy(np.array(img).transpose(2, 0, 1)[None].astype(np.float32) / 255.0)
-    ).squeeze(0)
+    # ✅ ИСПРАВЛЕНО: Загружаем В ПРЯМОЙ МОДУЛЬ, а не module.model
+    module = RPSModule(num_classes=cfg.model.num_classes)
+    module.load_state_dict(torch.load(cfg.output_file, weights_only=True))  # ← ЗДЕСЬ!
+    module.eval()
 
-    # Feature extraction
-    with torch.no_grad():
-        features = feature_extractor(img_tensor[None]).numpy()
+    trainer = L.Trainer(
+        accelerator=cfg.trainer.accelerator,
+        devices=cfg.trainer.devices,
+        precision=16,
+    )
 
-    # Prediction
-    predictions = classifier.predict_proba(features)[0]
-    class_names = ["Rock", "Paper", "Scissors"]
+    trainer.test(module, datamodule=datamodule)
+    print("✓ Batch тест завершен")
 
-    max_idx = np.argmax(predictions)
-    max_class = class_names[max_idx]
-    confidence = predictions[max_idx]
+    # === ОДИНОЧНЫЕ ПРЕДСКАЗАНИЯ ===
+    single_predict(module, cfg)
+    return module
 
-    plt.imshow(img)
-    plt.title(f"Predicted: {max_class} (Confidence: {confidence:.2f})")
-    plt.axis("off")
-    plt.show()
 
-    return max_class, confidence, predictions
+def single_predict(module, cfg: DictConfig):
+    transform = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        ]
+    )
+
+    test_images = ["test_rock.jpg", "test_paper.jpg", "test_scissors.jpg"]
+    CLASS_NAMES = ["rock", "paper", "scissors"]
+
+    module.eval()
+    device = next(module.parameters()).device
+
+    for img_path in test_images:
+        if Path(img_path).exists():
+            image = Image.open(img_path).convert("RGB")
+            img_tensor = transform(image).unsqueeze(0).to(device)
+
+            with torch.no_grad():
+                logits = module(img_tensor)  # ← ПРЯМО module!
+                probs = torch.softmax(logits, dim=1)
+                pred_class = torch.argmax(probs, dim=1).item()
+
+            print(f"🖼️ {img_path}: {CLASS_NAMES[pred_class]} ({probs.max():.1%})")
 
 
 if __name__ == "__main__":
-    infer(
-        None,
-        "/kaggle/input/rock-paper-scissors-dataset/Rock-Paper-Scissors/validation/paper-hires2.png",
-    )
+    # Запуск с конфигом (как в train)
+    model = infer()
+
+    print("\n🎉 Inference завершен!")
+    print("Для одиночных предсказаний положите изображения в текущую папку")
+    print("Файлы: test_rock.jpg, test_paper.jpg, test_scissors.jpg, my_photo.jpg")
