@@ -48,7 +48,7 @@
 Создание веб-сервиса на основе FastAPI для классификации жестов. Для развёртывания используется Docker контейнеризация.
 
 ## Структура проекта
-
+```
 rps-classifier/
 ├── .dvc/ # DVC configs
 ├── conf/ # Hydra configs
@@ -70,7 +70,7 @@ rps-classifier/
 ├── pyproject.toml # Poetry config
 ├── uv.lock # Dependency locks
 └── README.md # Project documentation
-
+```
 
 ## Установка и использование
 
