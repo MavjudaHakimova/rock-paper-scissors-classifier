@@ -7,6 +7,8 @@ venv/
 env/
 data/
 .dvc/
+tb_logs/
+1/
 dvc.lock
 inference_dir/
 rps_model_*.pth
@@ -24,4 +26,12 @@ main.py
 .vscode/
 .idea/
 .DS_Store
+*.pth
+*.ckpt
+ml-runs/
+tb_logs/
+lightning_logs/
+mlflow.db
+checkpoints/
+uv.lock
 EOF
