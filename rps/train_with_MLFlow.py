@@ -1,8 +1,3 @@
-import os
-import sys
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import git
 import hydra
 import lightning as L
@@ -25,7 +20,7 @@ def train(cfg: DictConfig):
     try:
         repo = git.Repo(search_parent_directories=True)
         print(f"Git commit: {repo.head.object.hexsha}")
-    except git.exc.InvalidGitRepositoryError:  # ← ТОЧНО УКАЗАТЬ ОШИБКУ
+    except git.exc.InvalidGitRepositoryError:
         print("Git не найден")
 
     datamodule = RPSDataModule(

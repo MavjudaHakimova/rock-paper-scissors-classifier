@@ -1,68 +1,52 @@
-"""Module for downloading RPS dataset from Google Drive archive."""
-
 import shutil
 import zipfile
 from pathlib import Path
-
 import gdown
 
 
 def download_data(data_dir: str = "data", force: bool = False) -> None:
-    """Download and extract RPS dataset from Google Drive archive.
-
-    Args:
-        data_dir: Directory to save the data
-        force: Force redownload even if data exists
-    """
     data_path = Path(data_dir)
     data_path.mkdir(exist_ok=True)
-
-    # Debug: show what's already there
     existing_files = list(data_path.glob("*"))
-    print(f"Found {len(existing_files)} items in {data_path}:")
+    print(f"Информация: {len(existing_files)} в {data_path}:")
     for f in existing_files[:5]:
         print(f"  - {f.name}")
 
     if not force and len(existing_files) > 0:
-        print(f"⚠️  Data already exists in {data_path}")
-        print("Use force=True to redownload")
+        print(f"Данные уже есть {data_path}")
         return
 
     if force or len(existing_files) > 0:
         shutil.rmtree(data_path)
         data_path.mkdir(exist_ok=True)
-        print("🧹 Cleared data directory")
+        print("Директория данных очищена")
 
-    # Google Drive file ID
     file_id = "1L-dwnigLiWw5_4nNn4yfzHKbZoAX-OdG"
     file_url = f"https://drive.google.com/uc?id={file_id}"
 
-    print("📥 Downloading RPS dataset archive...")
+    print("Скачивание RPS архива.")
     archive_path = data_path / "rps_dataset.zip"
 
     try:
         gdown.download(file_url, str(archive_path), quiet=False)
-        print("✅ Archive downloaded!")
+        print("Скачано!")
     except Exception as e:
-        print(f"❌ Download failed: {e}")
+        print(f"Скачать не получилось(: {e}")
         return
 
-    # Extract archive
-    print("📦 Extracting...")
+    print("Разархивирование")
     try:
         if zipfile.is_zipfile(archive_path):
             with zipfile.ZipFile(archive_path, "r") as zip_ref:
                 zip_ref.extractall(data_path)
         archive_path.unlink()
-        print("✅ Extraction completed!")
+        print("Завершено!")
     except Exception as e:
-        print(f"❌ Extraction failed: {e}")
+        print(f"Что-то сломалось(: {e}")
         return
 
-    # 🔥 АВТО-ПЕРЕМЕЩЕНИЕ: поднимаем train/test/val на уровень data/
-    print("🗂️  Organizing structure...")
+    print("Структуирование данных")
 
-    # Возможные вложенные папки
     nested_folders = ["Rock-Paper-Scissors", "RPS", "rps", "dataset"]
 
     for nested in nested_folders:
@@ -70,7 +54,6 @@ def download_data(data_dir: str = "data", force: bool = False) -> None:
         if nested_path.exists():
             print(f"Found nested folder: {nested}")
 
-            # Перемещаем train, test, validation наверх
             for split in ["train", "test", "validation", "val"]:
                 src = nested_path / split
                 dst = data_path / split
@@ -79,78 +62,45 @@ def download_data(data_dir: str = "data", force: bool = False) -> None:
                     shutil.move(str(src), str(dst))
                     print(f"  ✓ Moved {split}/ to data/{split}/")
 
-            # Удаляем пустую вложенную папку
             shutil.rmtree(nested_path, ignore_errors=True)
             break
 
-    # 🔥 АВТО-ОБРАБОТКА validation/ — собираем файлы по именам
+    # ФИКС validation - проверяем наличие папок классов
     validation_path = data_path / "validation"
-    if validation_path.exists() and len(list(validation_path.glob("*"))) == 0:
-        print("🔍 Auto-filling validation/ from files with class prefixes...")
+    if validation_path.exists():
+        classes = [d.name for d in validation_path.iterdir() if d.is_dir()]
+        if len(classes) == 0:
+            print("Заполняем validation из train...")
 
-        # Создаём папки классов
-        for cls in ["rock", "paper", "scissors"]:
-            (validation_path / cls).mkdir(exist_ok=True)
+            for cls in ["rock", "paper", "scissors"]:
+                (validation_path / cls).mkdir(exist_ok=True)
 
-        # Ищем файлы по паттернам везде в data/
-        patterns = [
-            "*rock*",
-            "*Rock*",
-            "rockval*",
-            "rock_val*",
-            "*paper*",
-            "*Paper*",
-            "paperval*",
-            "paper_val*",
-            "*scissor*",
-            "*Scissor*",
-            "scissorval*",
-            "scissor_val*",
-        ]
+                train_cls_path = data_path / "train" / cls
+                if train_cls_path.exists():
+                    images = (
+                        list(train_cls_path.glob("*.jpg"))
+                        + list(train_cls_path.glob("*.jpeg"))
+                        + list(train_cls_path.glob("*.png"))
+                    )
+                    for img in images[:50]:
+                        dest = validation_path / cls / img.name
+                        if not dest.exists():
+                            shutil.move(str(img), str(dest))
+                            print(f"  ✓ {img.name} → validation/{cls}/")
 
-        moved_count = 0
-        for pattern in patterns:
-            for file_path in data_path.rglob(pattern):
-                if file_path.is_file() and file_path.suffix.lower() in {
-                    ".jpg",
-                    ".jpeg",
-                    ".png",
-                }:
-                    # Определяем класс по паттерну
-                    if any(p in file_path.name.lower() for p in ["rock", "rockval"]):
-                        cls = "rock"
-                    elif any(
-                        p in file_path.name.lower() for p in ["paper", "paperval"]
-                    ):
-                        cls = "paper"
-                    elif any(
-                        p in file_path.name.lower() for p in ["scissor", "scissorval"]
-                    ):
-                        cls = "scissors"
-                    else:
-                        continue
+            print("Validation заполнен!")
 
-                    # Перемещаем в validation/cls/
-                    dest = validation_path / cls / file_path.name
-                    if not dest.exists():
-                        shutil.move(str(file_path), str(dest))
-                        moved_count += 1
-                        print(f"    ✓ Moved {file_path.name} → validation/{cls}/")
-
-        print(f"    📊 Moved {moved_count} files to validation/")
-
-    # Финальная проверка структуры
-    print("\n📁 Final structure:")
+    print("Структура:")
     for split in ["train", "test", "validation", "val"]:
         split_path = data_path / split
         if split_path.exists():
             classes = [d.name for d in split_path.iterdir() if d.is_dir()]
             class_counts = {c: len(list((split_path / c).glob("*.*"))) for c in classes}
-            print(f"  {split}/: {len(classes)} classes - {class_counts}")
+            print(f"  {split}/: {len(classes)} классов - {class_counts}")
         else:
-            print(f"  ❌ Missing {split}/")
+            print(f"  {split}/")
 
-    print("\n🎉 Dataset ready in correct structure!")
+    print("Датасет готов к обучению!")
 
 
 if __name__ == "__main__":

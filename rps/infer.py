@@ -1,57 +1,49 @@
-import os
-import sys
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from pathlib import Path
-
 import hydra
-import lightning as L
 import torch
-from omegaconf import DictConfig
+import torch.nn.functional as F
 from PIL import Image
 from torchvision import transforms
+from collections import Counter
+from omegaconf import DictConfig
 
-from rps.data import RPSDataModule
 from rps.module import RPSModule
 
-# Классы RPS для интерпретации предсказаний
 CLASS_NAMES = ["rock", "paper", "scissors"]
 
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
 def infer(cfg: DictConfig):
-    print("Загрузка модели и данных...")
+    print("Inference на плоской папке...")
 
-    # === BATCH ТЕСТИРОВАНИЕ ===
-    datamodule = RPSDataModule(
-        cfg.data.train_data_dir,
-        cfg.data.test_data_dir,
-        cfg.data.val_data_dir,
-        cfg.data.train_batch_size,
-        cfg.data.test_batch_size,
-    )
+    inference_dir = Path("inference_dir")
+    if not inference_dir.exists():
+        print(f"Создайте {inference_dir}/ и положите туда JPG/PNG файлы")
+        return
 
-    # ✅ ИСПРАВЛЕНО: Загружаем В ПРЯМОЙ МОДУЛЬ, а не module.model
-    module = RPSModule(num_classes=cfg.model.num_classes)
-    module.load_state_dict(torch.load(cfg.output_file, weights_only=True))  # ← ЗДЕСЬ!
-    module.eval()
+    device = torch.device("mps" if cfg.trainer.accelerator == "mps" else "cpu")
+    model = RPSModule(num_classes=cfg.model.num_classes)
+    model.load_state_dict(torch.load(cfg.output_file, weights_only=True))
+    model.to(device).eval()
 
-    trainer = L.Trainer(
-        accelerator=cfg.trainer.accelerator,
-        devices=cfg.trainer.devices,
-        precision=16,
-    )
+    print(f"Модель: {cfg.output_file}")
 
-    trainer.test(module, datamodule=datamodule)
-    print("✓ Batch тест завершен")
+    predictions = predict_folder(model, inference_dir, device)
 
-    # === ОДИНОЧНЫЕ ПРЕДСКАЗАНИЯ ===
-    single_predict(module, cfg)
-    return module
+    print(f"Обработано: {len(predictions)} изображений")
+    class_counts = Counter([p["class"] for p in predictions])
+    for cls, count in class_counts.items():
+        print(f"  {cls}: {count}")
+
+    print("\n ПРЕДСКАЗАНИЯ:")
+    for pred in predictions[:10]:
+        print(f"  {pred['filename']}: {pred['class']} ({pred['confidence']:.1%})")
+
+    print("Готово!")
 
 
-def single_predict(module, cfg: DictConfig):
+def predict_folder(model, folder_path: Path, device):
+    """Предсказывает классы для всех изображений в папке"""
     transform = transforms.Compose(
         [
             transforms.Resize((224, 224)),
@@ -60,29 +52,34 @@ def single_predict(module, cfg: DictConfig):
         ]
     )
 
-    test_images = ["test_rock.jpg", "test_paper.jpg", "test_scissors.jpg"]
-    CLASS_NAMES = ["rock", "paper", "scissors"]
+    predictions = []
 
-    module.eval()
-    device = next(module.parameters()).device
+    images = (
+        list(folder_path.glob("*.jpg"))
+        + list(folder_path.glob("*.jpeg"))
+        + list(folder_path.glob("*.png"))
+    )
+    for img_path in images:
+        image = Image.open(img_path).convert("RGB")
+        img_tensor = transform(image).unsqueeze(0).to(device)
 
-    for img_path in test_images:
-        if Path(img_path).exists():
-            image = Image.open(img_path).convert("RGB")
-            img_tensor = transform(image).unsqueeze(0).to(device)
+        with torch.no_grad():
+            logits = model(img_tensor)
+            probs = F.softmax(logits, dim=1)
+            pred_idx = torch.argmax(probs, dim=1).item()
+            confidence = probs.max().item()
 
-            with torch.no_grad():
-                logits = module(img_tensor)  # ← ПРЯМО module!
-                probs = torch.softmax(logits, dim=1)
-                pred_class = torch.argmax(probs, dim=1).item()
+        predictions.append(
+            {
+                "filename": img_path.name,
+                "class": CLASS_NAMES[pred_idx],
+                "confidence": confidence,
+                "probs": probs.cpu().numpy()[0],
+            }
+        )
 
-            print(f"🖼️ {img_path}: {CLASS_NAMES[pred_class]} ({probs.max():.1%})")
+    return predictions
 
 
 if __name__ == "__main__":
-    # Запуск с конфигом (как в train)
-    model = infer()
-
-    print("\n🎉 Inference завершен!")
-    print("Для одиночных предсказаний положите изображения в текущую папку")
-    print("Файлы: test_rock.jpg, test_paper.jpg, test_scissors.jpg, my_photo.jpg")
+    infer()

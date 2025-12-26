@@ -1,47 +1,27 @@
-/data
-.DS_Store
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+data/
+.dvc/
+dvc.lock
+inference_dir/
+rps_model_*.pth
+lightning_logs/
+tb_logs/
+mlruns/
+mlartifacts/
+outputs/
+plots/
+miflow.db
+uv.lock
+paper.jpg
+test/
+main.py
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-
-# Hydra outputs (НЕ коммитить!)
-outputs/
-*.pth
-*.ckpt
-
-# MLflow
-ml-runs/
-mlflow.db
-mlflow.sqlite
-
-# DVC
-.dvc/cache
-
-# Plots (если генеришь)
-plots/
-
-# Logs
-tb_logs/
-lightning_logs/
-
-# Temp
-*.log
-.text
+.DS_Store
 EOF

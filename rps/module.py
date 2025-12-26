@@ -1,7 +1,7 @@
 import lightning as L
 import torch
 import torch.nn.functional as F
-from model import FeatureExtractor
+from rps.model import FeatureExtractor
 from torchmetrics import Accuracy, F1Score
 
 
@@ -78,7 +78,6 @@ class RPSModule(L.LightningModule):
 
         self.log("test_loss", loss, prog_bar=True)
 
-    # 🔥 КРИТИЧНО: добавьте эти методы!
     def on_train_epoch_end(self):
         acc = self.train_accuracy.compute()
         f1 = self.train_f1.compute()
