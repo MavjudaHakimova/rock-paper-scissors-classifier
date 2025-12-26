@@ -12,7 +12,7 @@ infer:
 	uv run python -m rps.infer
 
 ui:
-	mlflow ui --host 0.0.0.0 --port 8080
+	uv run mlflow ui --host 0.0.0.0 --port 8080
 
 lint:
 	pre-commit run --all-files
