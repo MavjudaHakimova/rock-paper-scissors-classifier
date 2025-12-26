@@ -6,10 +6,10 @@ setup:
 	dvc init --force 2>/dev/null || true
 
 train:
-	uv run python -m rps.train  # ← ИЗМЕНИТЬ!
+	uv run python -m rps.train_with_dvc
 
 infer:
-	uv run python -m rps.infer   # ← ИЗМЕНИТЬ!
+	uv run python -m rps.infer
 
 ui:
 	mlflow ui --host 0.0.0.0 --port 8080

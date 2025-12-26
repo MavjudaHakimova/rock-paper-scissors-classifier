@@ -17,7 +17,6 @@ tb_logs/
 mlruns/
 mlartifacts/
 outputs/
-plots/
 miflow.db
 uv.lock
 paper.jpg
