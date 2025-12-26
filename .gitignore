@@ -1,2 +1,47 @@
 /data
 .DS_Store
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Hydra outputs (НЕ коммитить!)
+outputs/
+*.pth
+*.ckpt
+
+# MLflow
+ml-runs/
+mlflow.db
+mlflow.sqlite
+
+# DVC
+.dvc/cache
+
+# Plots (если генеришь)
+plots/
+
+# Logs
+tb_logs/
+lightning_logs/
+
+# Temp
+*.log
+.text
+EOF
