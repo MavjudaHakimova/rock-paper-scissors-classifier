@@ -21,6 +21,8 @@
 **Целевые показатели**: 
 - Accuracy > 95%
 - F1-Score > 0.90
+- ![telegram-cloud-photo-size-2-5366557535118232856-y](https://github.com/user-attachments/assets/267aa954-2ba8-4a50-9f1c-76936b11c237)
+
 
 ### Датасеты
 Используется датасет Rock-Paper-Scissors Dataset с Kaggle: https://www.kaggle.com/datasets/sanikamal/rock-paper-scissors-dataset/data
