@@ -132,3 +132,9 @@ make infer
    ```
    ![telegram-cloud-photo-size-2-5366557535118233941-y](https://github.com/user-attachments/assets/6aab95e2-9bc6-4223-8d10-57c76db25229)
 
+8. Я работаю с локальным DVC-хранилищем для управления данными, используя его совместно с Git для контроля версий. Изначальные данные скачиваются из публичной папки в моем гугл диске:
+https://drive.google.com/file/d/1L-dwnigLiWw5_4nNn4yfzHKbZoAX-OdG/view?usp=sharing
+
+9. Для логгирования использован инструмент MLFlow и вот промежуточные результаты:
+
+![telegram-cloud-photo-size-2-5366557535118233983-y](https://github.com/user-attachments/assets/e74f65ae-fc2c-46d4-986f-9f5c1e00c57d)
