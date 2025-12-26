@@ -12,10 +12,10 @@ infer:
 	uv run python -m rps.infer
 
 ui:
-	mlflow ui --host 0.0.0.0 --port 8080
+	uv run mlflow ui --host 0.0.0.0 --port 8080
 
 lint:
-	pre-commit run --all-files
+	uv run pre-commit run --all-files
 
 clean:
 	rm -rf data/ plots/ tb_logs/ .dvc/ rps_model_*.pth
