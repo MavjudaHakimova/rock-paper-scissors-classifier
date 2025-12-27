@@ -2,7 +2,7 @@
 
 setup:
 	uv sync --dev
-	pre-commit install
+	uv run pre-commit install
 	dvc init --force 2>/dev/null || true
 
 train:
