@@ -5,7 +5,13 @@ setup:
 	uv run pre-commit install
 	dvc init --force 2>/dev/null || true
 
-train:
+setup-dvc:
+	if [ ! -d .dvc ]; then \
+		uv run dvc init; \
+		uv run dvc remote add -d myremote /path/to/your/remote; \
+	fi
+
+train: setup-dvc
 	uv run python -m rps.train_with_dvc
 
 infer:

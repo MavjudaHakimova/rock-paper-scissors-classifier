@@ -45,7 +45,7 @@ class RPSModule(L.LightningModule):
 
         self.log("train_loss", loss, prog_bar=True)
 
-        # ВРЕМЕННЫЕ step-метрики (не epoch)
+        # step-метрики (не epoch)
         self.log("train_acc_step", self.train_accuracy, prog_bar=True, on_step=True)
         self.log("train_f1_step", self.train_f1, prog_bar=True, on_step=True)
 

@@ -40,7 +40,6 @@ def train(cfg: DictConfig):
     trainer.fit(model, datamodule=datamodule)
     trainer.test(model, datamodule=datamodule)
 
-    # Сохранение модели (как в примере)
     torch.save(model.state_dict(), cfg.output_file)
 
 
