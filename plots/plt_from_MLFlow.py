@@ -2,7 +2,7 @@ import os
 import mlflow
 from pathlib import Path
 
-def save_metrics_plots(trainer, experiment_id=None, run_id=None):
+def save_metrics_plots_mlflow(trainer, experiment_id=None, run_id=None):
     plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
 
