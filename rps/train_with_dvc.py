@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import git
 import hydra
 import lightning as L
@@ -5,30 +7,15 @@ import mlflow
 import torch
 from lightning.pytorch.loggers import MLFlowLogger
 from omegaconf import DictConfig, OmegaConf
+
 from plots.plot_metric import save_metrics_plots
-from plots.plt_from_MLFlow import save_metrics_plots_mlflow
 from rps.data import RPSDataModule
 from rps.module import RPSModule
 from rps.utils.dvc_data import download_data
-from pathlib import Path
-
-DVC_AVAILABLE = True
 
 
 def ensure_data(cfg: DictConfig) -> None:
     data_dir = cfg.data.train_data_dir.rsplit("/", 1)[0]
-
-    if DVC_AVAILABLE:
-        try:
-            print("Проверяем DVC...")
-            from dvc.repo import Repo
-
-            repo = Repo(".")
-            repo.pull()
-            print("✓ Данные из DVC загружены!")
-            return
-        except Exception as e:
-            print(f"DVC не сработал: {e}. Проверяем наличие data/...")
 
     # Проверяем, есть ли уже data/ с правильной структурой
     data_path = Path(data_dir)
@@ -82,7 +69,6 @@ def train(cfg: DictConfig):
 
     torch.save(model.state_dict(), cfg.output_file)
     save_metrics_plots(trainer)
-    save_metrics_plots_mlflow(trainer)
 
     mlflow.log_artifacts("plots/")
     mlflow.log_params(OmegaConf.to_container(cfg))
